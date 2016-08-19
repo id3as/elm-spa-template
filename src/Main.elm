@@ -33,7 +33,7 @@ type alias Model =
     , tabTables : Tabs.Tables.Model
     , tabLogon : Tabs.Logon.Model
     , tabEncoders : Tabs.Encoders.Model
-    , tabInfos : List TabInfo
+    , tabInfoArray : Array TabInfo
     , mdl : Material.Model
     }
 
@@ -48,7 +48,7 @@ model =
     , tabTables = Tabs.Tables.model
     , tabLogon = Tabs.Logon.model
     , tabEncoders = Tabs.Encoders.model
-    , tabInfos = tabInfos
+    , tabInfoArray = tabInfoArray
     }
 
 
@@ -164,10 +164,6 @@ type alias ViewFunc =
     Model -> Html Msg
 
 
-type TI
-    = TI TabInfo
-
-
 type alias TabInfo =
     { tabName : String
     , tabUrl : String
@@ -181,79 +177,47 @@ type alias Tab =
     }
 
 
+tabList : List Tab
 tabList =
     [ { info = { tabName = "Tables", tabUrl = "tables", requiredRole = Auth.User }, tabViewMap = tableTabViewMap }
     , { info = { tabName = "Puppies", tabUrl = "puppies", requiredRole = Auth.Admin }, tabViewMap = .tabPuppies >> Tabs.Puppies.view >> App.map PuppiesMsg }
     , { info = { tabName = "Encoders", tabUrl = "encoders", requiredRole = Auth.User }, tabViewMap = .tabEncoders >> Tabs.Encoders.view >> App.map EncodersMsg }
-    , { info = logonTabInfo, tabViewMap = logonTabViewMap2 }
+    , { info = logonTabInfo, tabViewMap = logonTabViewMap }
     ]
 
 
+tabInfos : List TabInfo
 tabInfos =
     List.map .info tabList
 
 
+tabInfoArray : Array TabInfo
 tabInfoArray =
     Array.fromList tabInfos
 
 
+logonTabInfo : TabInfo
 logonTabInfo =
     { tabName = "Logon", tabUrl = "logon", requiredRole = Auth.None }
 
 
-noContext modelFunc =
-    \context model -> modelFunc model
-
-
+tabArray : Array Tab
 tabArray =
     Array.fromList tabList
 
 
-tabName index =
-    Array.get index tabInfoArray |> Maybe.withDefault logonTabInfo |> .tabName
-
-
-
---tabIndexByName : String -> Int
---tabIndexByName =
---    Dict.fromList <| List.indexedMap (\idx tab -> ( tab.tabName, idx )) tabList
-
-
-logonTabViewMap2 model =
-    let
-        viewWithInjectedArgs =
-            Tabs.Logon.view (model.selectedTab /= model.desiredTab) (tabName model.desiredTab) Auth.Admin
-    in
-        .tabLogon model |> viewWithInjectedArgs |> App.map LogonMsg
+tabName : Int -> Array TabInfo -> String
+tabName index tiArray =
+    Array.get index tiArray |> Maybe.withDefault logonTabInfo |> .tabName
 
 
 logonTabViewMap : Model -> Html Msg
 logonTabViewMap model =
-    -- the logon tab needs to know what our intended tab name and Role is so it can display that to the user if they are redirected there...
     let
-        requiredRole =
-            Auth.User
-
-        desiredTabInfo =
-            Debug.log "dTI" tabArray
-
-        _ =
-            Debug.log "Model" (model.selectedTab /= model.desiredTab)
-
-        --Array.get model.desiredTab tabPermissions |> Maybe.withDefault Auth.None
+        viewWithInjectedArgs =
+            Tabs.Logon.view (model.selectedTab /= model.desiredTab) (tabName model.desiredTab model.tabInfoArray) Auth.Admin
     in
-        Tabs.Logon.view (model.selectedTab /= model.desiredTab) "fred" requiredRole model.tabLogon |> App.map LogonMsg
-
-
-
---logonTabViewMap : Model -> Html Msg
---logonTabViewMap model =
---    -- the logon tab needs to know what our intended tab name and Role is so it can display that to the user if they are redirected there...
---    let
---        desiredTabInfo =
---            Array.get model.desiredTab tabArray |> Maybe.withDefault logonTabInfo
---    in
---        Tabs.Logon.view (model.selectedTab == model.desiredTab) desiredTabInfo.tabName desiredTabInfo.requiredRole model.tabLogon |> App.map LogonMsg
+        .tabLogon model |> viewWithInjectedArgs |> App.map LogonMsg
 
 
 tableTabViewMap : Model -> Html Msg
@@ -281,6 +245,7 @@ tabUrls =
     List.map .tabUrl tabInfos |> Array.fromList
 
 
+tabPermissions : Array Auth.Role
 tabPermissions =
     List.map .requiredRole tabInfos |> Array.fromList
 
