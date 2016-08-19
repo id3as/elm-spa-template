@@ -84,5 +84,4 @@ logonTabViewMap model =
         .tabLogon model |> viewWithInjectedArgs |> App.map LogonMsg
 ```
 
-Now we do have a circular dependecy here - we want to reference the name of the desired tab and we look that up in the ```tabList```, but this function is 
-a member of the static constructor
+Now we do have a circular dependecy here - we want to reference the name of the desired tab and we look that up in the ```tabList```, but this function is a member of ```tabList```'s constructor.
