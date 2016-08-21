@@ -20,7 +20,7 @@ tabList =
 
 As we are strongly typed and lists must be homogeneous, the tabViewMap element must all be of the same type (in this case ```Model -> Html Msg```)  Taking the case of the Logon tab, it would be nice to be able to say why we ended up there if, for example, we have been redirected there while trying to access a different tab for which we do not have permission.
 
-This is done as follows:
+In the case of Tables tab we inject the ```Auth``` state into its ```view``` call and it is straightforward enough.  In the case of the Logon tab we pass whether we have been redirected and if so where from and what the missing role is.  This is done as follows:
 ```elm
 logonTabViewMap : Model -> Html Msg
 logonTabViewMap model =
@@ -39,5 +39,8 @@ logonTabViewMap model =
         in
             .tabLogon model |> viewWithInjectedArgs |> App.map LogonMsg
 ```
-(As an aside, if you do have the circualr reference it compiles just fine but crashes when you load the SPA with the generated Javascript referencing the array the live before it sets it - fair enough really!)
+
+I don't much like having this static data in the model, so any suggestions on how to avoid this much appreciated!
+
+(As an aside, if you do have the circualr reference it compiles just fine but crashes when you load the SPA with the generated Javascript referencing the array the line before it sets it - fair enough really!)
 
