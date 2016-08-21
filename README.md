@@ -42,3 +42,7 @@ See the comment in the code snippet: I don't much like having this static data i
 
 (As an aside, if you do have the circualr reference it compiles just fine but crashes when you load the SPA with the generated Javascript referencing the array the line before it sets it - fair enough really!)
 
+# Todo
+
+* Build to .js with an Index.html that pulls in all the CSS etc
+
