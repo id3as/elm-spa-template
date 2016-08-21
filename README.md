@@ -1,57 +1,8 @@
 # elm-spa-template
 
-## This project shows up what looks like an ELM compiler bug.
-
-If you checkout the project and run ```elm-make src/Main.elm``` it compiles just fine.  However if you run ```Main.elm``` in 
-via ```elm-reactor``` you get a crash in the following lines of javascript (lines 16687... in my browser):
-
-```javascript
-var _id3as$elm_spa_template$Main$tabInfoArray = _elm_lang$core$Array$fromList(_id3as$elm_spa_template$Main$tabInfos);
-var _id3as$elm_spa_template$Main$tabInfos = A2(
-	_elm_lang$core$List$map,
-	function (_) {
-		return _.info;
-	},
-	_id3as$elm_spa_template$Main$tabList);
-```
-The runtime cause is pretty clear - the first line references a second variable that isn't set till the line below...  
-The corresponding lines in ```Mail.elm``` are on line 197:
-```elm
-tabPermissions : Array Auth.Role
-tabPermissions =
-    List.map .requiredRole tabInfos |> Array.fromList
-```
-If however you try to run the code in ```elm-repl``` you get the following behaviour:
-```
-adrian@Adrians-MacBook-Pro:~/dev/elm-spa-template(master⚡) » elm-repl
----- elm-repl 0.17.1 -----------------------------------------------------------
- :help for help, :exit to exit, more at <https://github.com/elm-lang/elm-repl>
---------------------------------------------------------------------------------
-> import Main
-/Users/adrian/dev/elm-spa-template/repl-temp-000.js:10017
-       	onDocument: F3(on(document)),
-       	                  ^
-
-ReferenceError: document is not defined
-    at /Users/adrian/dev/elm-spa-template/repl-temp-000.js:10017:20
-    at Object.<anonymous> (/Users/adrian/dev/elm-spa-template/repl-temp-000.js:10034:2)
-    at Object.<anonymous> (/Users/adrian/dev/elm-spa-template/repl-temp-000.js:17176:4)
-    at Module._compile (module.js:413:34)
-    at Object.Module._extensions..js (module.js:422:10)
-    at Module.load (module.js:357:32)
-    at Function.Module._load (module.js:314:12)
-    at Function.Module.runMain (module.js:447:10)
-    at startup (node.js:140:18)
-    at node.js:1001:3
-
->
-```
-
-
 ## Intent of the Project
 
-This project is something of a playground for the wonderful Elm language and how to build SPAs in particular.  Much of the structure is 
-taken from the excellent elm-mdl library.
+This project is something of a playground for the wonderful [Elm language](elm-lang.org) and how to build SPAs in particular.  Much of the structure is taken from the excellent [elm-mdl](https://github.com/debois/elm-mdl) and its [live demo](https://debois.github.io/elm-mdl/) in particular.
 
 The bug arose during a period of chasing how to a) manage boilerplate relating to separate tabs in the SPA and b) how to be able to inject
 context into the views of the contained tabs.  I did not want any of the tabs to reference parent state or to store copies of global state.
