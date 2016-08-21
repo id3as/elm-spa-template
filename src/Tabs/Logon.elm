@@ -2,6 +2,8 @@ module Tabs.Logon exposing (Model, Msg(PostFail, PostSucceed), model, update, vi
 
 import Html.App as App
 import Html exposing (..)
+import Html.Attributes exposing (..)
+import Html.Events exposing (..)
 import Material
 import Material.Textfield as Textfield
 import Material.Button as Button
@@ -26,7 +28,7 @@ main =
 
 
 
--- HTTP
+-- CheckCredentials
 
 
 checkCredentials : Bool -> String -> String -> Cmd Msg
@@ -38,7 +40,7 @@ checkCredentials fakeAuth username password =
                     fakeCheckCredentials username password
 
                 False ->
-                    checkCredentials' username password
+                    httpCheckCredentials' username password
     in
         Task.perform PostFail PostSucceed authTask
 
@@ -60,8 +62,8 @@ fakeCheckCredentials username password =
         Task.succeed userAuth
 
 
-checkCredentials' : String -> String -> Task.Task Http.Error Auth.UserAuth
-checkCredentials' username password =
+httpCheckCredentials' : String -> String -> Task.Task Http.Error Auth.UserAuth
+httpCheckCredentials' username password =
     Http.send Http.defaultSettings
         { verb = "POST"
         , headers =
@@ -73,41 +75,6 @@ checkCredentials' username password =
             Http.string <| encodeAuthRequest username password
         }
         |> Http.fromJson decodeAuthResponse
-
-
-encodeAuthRequest : String -> String -> String
-encodeAuthRequest username password =
-    JS.encode 0 <|
-        JS.object
-            [ ( "username", JS.string username )
-            , ( "password", JS.string password )
-            ]
-
-
-decodeAuthResponse : Json.Decoder Auth.UserAuth
-decodeAuthResponse =
-    JsonPipeline.decode Auth.UserAuth
-        |> JsonPipeline.required "username" Json.string
-        |> JsonPipeline.required "sessionId" Json.string
-        |> JsonPipeline.required "roles" (Json.list decodeRole)
-
-
-decodeRole : Json.Decoder Auth.Role
-decodeRole =
-    Json.map strToRole Json.string
-
-
-strToRole : String -> Auth.Role
-strToRole str =
-    case str of
-        "admin" ->
-            Auth.Admin
-
-        "user" ->
-            Auth.User
-
-        _ ->
-            Auth.None
 
 
 
@@ -172,52 +139,140 @@ update msg model =
 
 view : Bool -> String -> Auth.Role -> Model -> Html Msg
 view isRedirect targetTabName requiredRole model =
-    div []
-        [ h4 []
-            [ text "hello" ]
-        , Options.div []
-            [ if Debug.log "isRedirect" isRedirect then
-                text <| "You've ended up here as you need " ++ (toString requiredRole) ++ " permissions to access the " ++ targetTabName ++ " tab"
-              else
-                text ""
+    Options.div [ Options.css "margin-left" "20px" ]
+        [ header
+            [ style
+                [ ( "text-align", "center" )
+                , ( "margin-top", "4em" )
+                ]
             ]
-        , Options.div
-            [ Options.center ]
-            [ Textfield.render
-                MDL
-                [ 0 ]
-                model.mdl
-                [ Textfield.label "Username"
-                , Textfield.floatingLabel
-                , Textfield.autofocus
-                , Textfield.value model.username
-                , Textfield.onInput UsernameChange
-                , Textfield.text'
+            [ h1
+                [ style
+                    [ ( "font-weight", "300" )
+                    , ( "color", "#636363" )
+                    ]
+                ]
+                [ text "Fake Logon" ]
+            , h3
+                [ style
+                    [ ( "font-weight", "300" )
+                    , ( "color", "#4a89dc" )
+                    ]
+                ]
+                [ text "Elm SPA" ]
+            ]
+        , Html.form [ formCss, onSubmit CheckCredentials ]
+            [ Options.div
+                [ Options.center ]
+                [ if isRedirect then
+                    div []
+                        [ text <|
+                            "In order to access the "
+                                ++ targetTabName
+                                ++ " tab, you need to logon as a user in the "
+                                ++ (toString requiredRole)
+                                ++ " role."
+                        , hr [] []
+                        ]
+                  else
+                    text ""
+                ]
+            , Options.div
+                [ Options.center ]
+                [ Textfield.render
+                    MDL
+                    [ 0 ]
+                    model.mdl
+                    [ Textfield.label "Username"
+                    , Textfield.floatingLabel
+                    , Textfield.autofocus
+                    , Textfield.value model.username
+                    , Textfield.onInput UsernameChange
+                    , Textfield.text'
+                    ]
+                ]
+            , Options.div
+                [ Options.center ]
+                [ Textfield.render
+                    MDL
+                    [ 1 ]
+                    model.mdl
+                    [ Textfield.label "Password"
+                    , Textfield.floatingLabel
+                    , Textfield.onInput PasswordChange
+                    , Textfield.password
+                    ]
+                ]
+            , Options.div
+                [ Options.center ]
+                [ Button.render MDL
+                    [ 2 ]
+                    model.mdl
+                    [ Button.raised
+                    , Button.colored
+                    , Button.onClick CheckCredentials
+                    ]
+                    [ text "Login" ]
                 ]
             ]
         , Options.div
-            [ Options.center ]
-            [ Textfield.render
-                MDL
-                [ 1 ]
-                model.mdl
-                [ Textfield.label "Enter password"
-                , Textfield.floatingLabel
-                , Textfield.onInput PasswordChange
-                , Textfield.password
-                ]
+            []
+            [ text <| "There are two users available:" ]
+        , ul []
+            [ li [] [ text "user" ]
+            , li [] [ text "admin" ]
             ]
-        , Options.div
-            [ Options.center ]
-            [ Button.render MDL
-                [ 2 ]
-                model.mdl
-                [ Button.raised
-                , Button.colored
-                , Button.onClick CheckCredentials
-                ]
-                [ text "Login" ]
-            ]
+        , text "any password will do..."
           -- Debug dump of model withouth the mdl clutter
         , Utils.debugDumpModel model
+        ]
+
+
+
+-- Json encode /decode
+
+
+encodeAuthRequest : String -> String -> String
+encodeAuthRequest username password =
+    JS.encode 0 <|
+        JS.object
+            [ ( "username", JS.string username )
+            , ( "password", JS.string password )
+            ]
+
+
+decodeAuthResponse : Json.Decoder Auth.UserAuth
+decodeAuthResponse =
+    JsonPipeline.decode Auth.UserAuth
+        |> JsonPipeline.required "username" Json.string
+        |> JsonPipeline.required "sessionId" Json.string
+        |> JsonPipeline.required "roles" (Json.list decodeRole)
+
+
+decodeRole : Json.Decoder Auth.Role
+decodeRole =
+    Json.map strToRole Json.string
+
+
+strToRole : String -> Auth.Role
+strToRole str =
+    case str of
+        "admin" ->
+            Auth.Admin
+
+        "user" ->
+            Auth.User
+
+        _ ->
+            Auth.None
+
+
+formCss =
+    style
+        [ ( "width", "380px" )
+        , ( "margin", "4em auto" )
+        , ( "padding", "3em 2em 2em 2em" )
+        , ( "background", "#fafafa" )
+        , ( "border", "1px solid #ebebeb" )
+        , ( "box-shadow", "rgba(0,0,0,0.14902) 0px 1px 1px 0px,rgba(0,0,0,0.09804) 0px 1px 2px 0px" )
         ]

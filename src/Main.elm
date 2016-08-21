@@ -73,7 +73,7 @@ update msg model =
             -- tab?  If not then redirect to Logon
             let
                 requiredRole =
-                    Array.get tab tabPermissions |> Maybe.withDefault Auth.None
+                    infoForTab tab |> .requiredRole
             in
                 if requiredRole == Auth.None then
                     ( { model
@@ -142,13 +142,13 @@ rememberAuthAndMaybeChangeTabs logonMsg model =
     case logonMsg of
         Tabs.Logon.PostSucceed userAuth ->
             let
-                ourCommand' =
+                ourCommand =
                     if model.selectedTab == model.desiredTab then
                         Cmd.none
                     else
                         Utils.msg2cmd (SelectTab model.desiredTab)
             in
-                ( { model | userAuth = userAuth }, ourCommand' )
+                ( { model | userAuth = userAuth }, ourCommand )
 
         _ ->
             ( model, Cmd.none )
@@ -186,38 +186,27 @@ tabList =
     ]
 
 
-tabInfos : List TabInfo
-tabInfos =
-    List.map .info tabList
-
-
-tabInfoArray : Array TabInfo
-tabInfoArray =
-    Array.fromList tabInfos
-
-
 logonTabInfo : TabInfo
 logonTabInfo =
     { tabName = "Logon", tabUrl = "logon", requiredRole = Auth.None }
 
 
-tabArray : Array Tab
-tabArray =
-    Array.fromList tabList
-
-
-tabName : Int -> Array TabInfo -> String
-tabName index tiArray =
-    Array.get index tiArray |> Maybe.withDefault logonTabInfo |> .tabName
-
-
 logonTabViewMap : Model -> Html Msg
 logonTabViewMap model =
     let
-        viewWithInjectedArgs =
-            Tabs.Logon.view (model.selectedTab /= model.desiredTab) (tabName model.desiredTab model.tabInfoArray) Auth.Admin
+        desiredTabInfo =
+            -- We would really like to just pull the info from the static tabInfoArray
+            -- The problem is that creates a circular dependency as this LogonTabViewMap is part
+            -- of the tabList.
+            -- Instead we copy the tabInfoArray (without the viewmap functions) into the model
+            -- on startup and that breaks the self-reference.
+            Array.get model.desiredTab model.tabInfoArray |> Maybe.withDefault logonTabInfo
     in
-        .tabLogon model |> viewWithInjectedArgs |> App.map LogonMsg
+        let
+            viewWithInjectedArgs =
+                Tabs.Logon.view (model.selectedTab /= model.desiredTab) desiredTabInfo.tabName desiredTabInfo.requiredRole
+        in
+            .tabLogon model |> viewWithInjectedArgs |> App.map LogonMsg
 
 
 tableTabViewMap : Model -> Html Msg
@@ -230,6 +219,16 @@ tableTabViewMap model =
 -- tabs helpers
 
 
+tabInfos : List TabInfo
+tabInfos =
+    List.map .info tabList
+
+
+tabInfoArray : Array TabInfo
+tabInfoArray =
+    Array.fromList tabInfos
+
+
 tabTitles : List String
 tabTitles =
     List.map .tabName tabInfos
@@ -238,6 +237,11 @@ tabTitles =
 tabTitlesHTML : List (Html a)
 tabTitlesHTML =
     List.map text tabTitles
+
+
+infoForTab : Int -> TabInfo
+infoForTab tab =
+    Array.get tab tabInfoArray |> Maybe.withDefault logonTabInfo
 
 
 tabUrls : Array String
@@ -255,20 +259,14 @@ tabViews =
     List.map .tabViewMap tabList |> Array.fromList
 
 
+tabName : Int -> Array TabInfo -> String
+tabName index array =
+    Array.get index array |> Maybe.withDefault logonTabInfo |> .tabName
+
+
 urlTabs : Dict String Int
 urlTabs =
     List.indexedMap (\idx tabInfo -> ( .tabUrl tabInfo, idx )) tabInfos |> Dict.fromList
-
-
-e404 : ViewFunc
-e404 _ =
-    div []
-        [ Options.styled Html.h1
-            [ Options.cs "mdl-typography--display-4"
-            , Typography.center
-            ]
-            [ text "404" ]
-        ]
 
 
 
@@ -298,14 +296,32 @@ view model =
 header : Model -> List (Html Msg)
 header model =
     [ Layout.row []
-        [ Layout.title [] [ text "Elm Encoder" ]
+        [ Layout.title [] [ text "Elm MDL/SPA Exploration" ]
         , Layout.spacer
-        , Layout.navigation []
-            [ Layout.link [ Layout.href "http://www.id3as.co.uk" ]
-                [ span [] [ text "id3as" ] ]
+        , div []
+            [ Layout.navigation []
+                [ Layout.link [ Layout.href "http://www.id3as.co.uk" ]
+                    [ div [] [ text "id3as homepage" ] ]
+                ]
             ]
+        , div [] [ text <| "Logged in as: " ++ model.userAuth.username ]
         ]
     ]
+
+
+e404 : ViewFunc
+e404 _ =
+    div []
+        [ Options.styled Html.h1
+            [ Options.cs "mdl-typography--display-4"
+            , Typography.center
+            ]
+            [ text "404" ]
+        ]
+
+
+
+-- Routing
 
 
 urlOf : Model -> String
@@ -335,6 +351,10 @@ location2messages location =
                 |> Maybe.withDefault -1
                 |> SelectTab
     ]
+
+
+
+-- Main
 
 
 main : Program Never
