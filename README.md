@@ -1,6 +1,8 @@
 # elm-spa-template
 
-This project is something of a playground for the wonderful [Elm language](elm-lang.org) and how to build SPAs in particular.  Much of the structure is taken from the excellent [elm-mdl](https://github.com/debois/elm-mdl) and its [live demo](https://debois.github.io/elm-mdl/) in particular.
+There is a live demo of this template [here](http://id3as.github.io/elm-spa.html).
+
+This project is something of a playground for the wonderful [Elm language](elm-lang.org) and how to build SPAs in particular.  Much of the structure is taken from the excellent [elm-mdl](https://github.com/debois/elm-mdl) and its [live demo](https://debois.github.io/elm-mdl/) in particular.  
 
 I used the tabs infrastrucutre in the mdl-demo as a starting point.  It uses an array of tab details to set up the many contained tabs.  For the mdl demo this is very effective, but for a "real-world" application we need on occasion to provide extra information to the tab (for example who is currently logged in etc).  I very much wanted the contained tabs to not store any state that was not directly their own, so have experimented with injecting "context information" into the calls to their views.
 
